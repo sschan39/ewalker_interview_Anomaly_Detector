@@ -3,42 +3,54 @@
 <head>
     <title>Anomaly Detector</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        input { width: 400px; padding: 8px; }
-        button { padding: 8px 16px; cursor: pointer; }
-        #output { margin-top: 20px; padding: 10px; border: 1px solid #ccc; min-height: 60px; background-color: #f9f9f9; }
+        body { font-family: Arial, sans-serif; margin: 40px; max-width: 600px; }
+        h1 { color: #333; }
+        .input-group { margin: 20px 0; }
+        input { width: 100%; padding: 10px; font-size: 14px; box-sizing: border-box; }
+        button { padding: 10px 20px; font-size: 14px; cursor: pointer; background-color: #4CAF50; color: white; border: none; border-radius: 4px; margin-top: 10px; }
+        button:hover { background-color: #45a049; }
+        #output { margin-top: 30px; padding: 15px; border: 1px solid #ddd; background-color: #f9f9f9; border-radius: 4px; min-height: 40px; }
+        #status { margin-top: 10px; font-size: 12px; color: #666; }
     </style>
 </head>
 <body>
     <h1>Anomaly Detector</h1>
-    <input type="text" id="input" placeholder="Enter text to analyze" />
-    <button onclick="sendMessage()">Analyze</button>
-    <div id="output">Waiting for connection...</div>
+    <div class="input-group">
+        <input type="text" id="input" placeholder="Enter text to analyze" />
+        <button onclick="sendMessage()">Analyze</button>
+    </div>
+    <div id="output">Connecting...</div>
+    <div id="status"></div>
 
     <script>
         const ws = new WebSocket('ws://localhost:8080');
         const outputDiv = document.getElementById('output');
+        const statusDiv = document.getElementById('status');
         const inputField = document.getElementById('input');
 
         ws.onopen = () => {
-            outputDiv.textContent = 'Connected to detector. Ready for input.';
+            outputDiv.textContent = 'Ready. Enter text and click Analyze.';
+            statusDiv.textContent = '✓ Connected to detector';
         };
 
         ws.onmessage = (event) => {
             outputDiv.textContent = event.data;
+            statusDiv.textContent = 'Last result: ' + new Date().toLocaleTimeString();
         };
 
         ws.onerror = () => {
-            outputDiv.textContent = 'Error: Could not connect to websocket server on localhost:8080';
+            outputDiv.textContent = 'Connection error. Make sure the server is running on localhost:8080';
+            statusDiv.textContent = '✗ Cannot connect';
         };
 
         ws.onclose = () => {
             outputDiv.textContent = 'Disconnected from server.';
+            statusDiv.textContent = '✗ Disconnected';
         };
 
         function sendMessage() {
             const text = inputField.value.trim();
-            if (text) {
+            if (text && ws.readyState === WebSocket.OPEN) {
                 ws.send(text);
                 inputField.value = '';
             }

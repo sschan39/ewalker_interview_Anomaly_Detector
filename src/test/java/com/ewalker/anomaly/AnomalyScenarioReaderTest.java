@@ -14,7 +14,7 @@ class AnomalyScenarioReaderTest {
         List<AnomalyScenario> scenarios = new AnomalyScenarioReader().read(Path.of("test-data/anomaly-cases.json"));
         AnomalyDetector detector = new AnomalyDetector();
 
-        assertEquals(3, scenarios.size());
+        assertEquals(9, scenarios.size());
         for (AnomalyScenario scenario : scenarios) {
             assertEquals(scenario.expectedAnomaly(), detector.analyze(scenario.input()).anomaly(), scenario.input());
         }

@@ -1,5 +1,11 @@
 [
   {"input":"abcabcabcabc", "anomaly": true},
   {"input":"aaaaabaaaaa", "anomaly": true},
-  {"input":"server health check message 42", "anomaly": false}
+  {"input":"server health check message 42", "anomaly": false},
+  {"input":"1 = 1", "anomaly": true},
+  {"input":"OR 1=1", "anomaly": true},
+  {"input":"'; DROP TABLE users; --", "anomaly": true},
+  {"input":"admin", "anomaly": true},
+  {"input":"root password", "anomaly": true},
+  {"input":"User login successful", "anomaly": false}
 ]

@@ -9,33 +9,35 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Base64;
-import java.util.Scanner;
 
 public final class SimpleWebSocketServer {
     private final int port;
     private final AnomalyDetector detector;
+    private final SimpleLogger logger;
     private boolean running;
 
     public SimpleWebSocketServer(int port) {
         this.port = port;
         this.detector = new AnomalyDetector();
+        this.logger = new SimpleLogger("logs/anomaly-detector.log");
         this.running = false;
     }
 
     public void start() throws Exception {
         running = true;
         ServerSocket serverSocket = new ServerSocket(port);
-        System.out.println("WebSocket server listening on port " + port);
+        logger.log("WebSocket server listening on port " + port);
 
         new Thread(() -> {
             try {
                 while (running) {
                     Socket socket = serverSocket.accept();
+                    logger.log("Client connected from " + socket.getInetAddress().getHostAddress());
                     new Thread(() -> handleClient(socket)).start();
                 }
             } catch (Exception e) {
                 if (running) {
-                    e.printStackTrace();
+                    logger.error("Server error", e);
                 }
             }
         }).start();
@@ -48,8 +50,9 @@ public final class SimpleWebSocketServer {
     private void handleClient(Socket socket) {
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            BufferedOutputStream writer = new BufferedOutputStream(socket.getOutputStream());
+            OutputStream output = socket.getOutputStream();
 
+            // Read HTTP upgrade request
             String line = reader.readLine();
             if (line == null || !line.startsWith("GET")) {
                 socket.close();
@@ -68,31 +71,33 @@ public final class SimpleWebSocketServer {
                 return;
             }
 
+            // Send WebSocket upgrade response
             String acceptKey = generateAcceptKey(key);
             String response = "HTTP/1.1 101 Switching Protocols\r\n" +
                     "Upgrade: websocket\r\n" +
                     "Connection: Upgrade\r\n" +
                     "Sec-WebSocket-Accept: " + acceptKey + "\r\n" +
                     "\r\n";
+            output.write(response.getBytes(StandardCharsets.UTF_8));
+            output.flush();
 
-            writer.write(response.getBytes(StandardCharsets.UTF_8));
-            writer.flush();
-
-            handleWebSocketConnection(socket, reader, writer);
+            logger.log("WebSocket handshake completed");
+            handleWebSocketMessages(socket, reader, output);
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("Client handler error", e);
         } finally {
             try {
                 socket.close();
+                logger.log("Client disconnected");
             } catch (IOException e) {
-                e.printStackTrace();
+                logger.error("Error closing socket", e);
             }
         }
     }
 
-    private void handleWebSocketConnection(Socket socket, BufferedReader reader, BufferedOutputStream writer) throws Exception {
+    private void handleWebSocketMessages(Socket socket, BufferedReader reader, OutputStream output) throws Exception {
         InputStream rawInput = socket.getInputStream();
-        byte[] buffer = new byte[1024];
+        byte[] buffer = new byte[4096];
 
         while (running) {
             int bytesRead = rawInput.read(buffer, 0, 2);
@@ -122,32 +127,39 @@ public final class SimpleWebSocketServer {
             byte[] payload = new byte[payloadLength];
             rawInput.read(payload, 0, payloadLength);
 
-            if (isMasked) {
+            if (isMasked && maskKey != null) {
                 for (int i = 0; i < payloadLength; i++) {
                     payload[i] = (byte) (payload[i] ^ maskKey[i % 4]);
                 }
             }
 
             if (opcode == 1) {
-                String message = new String(payload, StandardCharsets.UTF_8);
-                DetectionResult result = detector.analyze(message);
-                String responseText = "Anomaly: " + result.anomaly() + " | Reason: " + result.reason() + " | Entropy: " + String.format("%.2f", result.entropy());
-                sendWebSocketMessage(writer, responseText);
+                // Text message
+                String inputText = new String(payload, StandardCharsets.UTF_8);
+                logger.log("Received: " + inputText);
+                
+                DetectionResult result = detector.analyze(inputText);
+                String outputText = result.anomaly() + " | " + result.reason() + " | Entropy: " + String.format("%.2f", result.entropy());
+                logger.log("Result: " + outputText);
+                
+                sendText(output, outputText);
             } else if (opcode == 8) {
+                // Close frame
+                logger.log("Close frame received");
                 break;
             }
         }
     }
 
-    private void sendWebSocketMessage(BufferedOutputStream writer, String message) throws Exception {
-        byte[] payload = message.getBytes(StandardCharsets.UTF_8);
+    private void sendText(OutputStream output, String text) throws Exception {
+        byte[] payload = text.getBytes(StandardCharsets.UTF_8);
         byte[] frame = new byte[payload.length + 2];
-        frame[0] = (byte) 0x81;
+        frame[0] = (byte) 0x81; // Text frame, final
         frame[1] = (byte) payload.length;
         System.arraycopy(payload, 0, frame, 2, payload.length);
 
-        writer.write(frame);
-        writer.flush();
+        output.write(frame);
+        output.flush();
     }
 
     private String generateAcceptKey(String key) throws Exception {

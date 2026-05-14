@@ -1,6 +1,9 @@
 package com.ewalker.anomaly.detector;
 
+import com.ewalker.anomaly.detector.rules.*;
+
 public class AnomalyDetector {
+    private final CompositeDetectionRule rules;
     private final double entropyThreshold;
 
     public AnomalyDetector() {
@@ -9,6 +12,19 @@ public class AnomalyDetector {
 
     public AnomalyDetector(double entropyThreshold) {
         this.entropyThreshold = entropyThreshold;
+        this.rules = new CompositeDetectionRule();
+        initializeDefaultRules();
+    }
+
+    private void initializeDefaultRules() {
+        rules.addRule(new SqlInjectionRule());
+        rules.addRule(new AdminKeywordRule());
+        rules.addRule(new RepeatedPatternRule());
+        rules.addRule(new EntropyRule(entropyThreshold));
+    }
+
+    public void addRule(DetectionRule rule) {
+        rules.addRule(rule);
     }
 
     public DetectionResult analyze(String message) {
@@ -17,19 +33,17 @@ public class AnomalyDetector {
             return new DetectionResult(true, "empty message", 0.0);
         }
 
+        RuleResult ruleResult = rules.evaluate(normalized);
         double entropy = calculateEntropy(normalized);
-        if (hasRepeatedPattern(normalized)) {
-            return new DetectionResult(true, "repeated pattern", entropy);
-        }
 
-        if (entropy < entropyThreshold) {
-            return new DetectionResult(true, "low entropy", entropy);
+        if (ruleResult.triggered()) {
+            return new DetectionResult(true, ruleResult.reason(), entropy);
         }
 
         return new DetectionResult(false, "normal", entropy);
     }
 
-    double calculateEntropy(String value) {
+    private double calculateEntropy(String value) {
         int[] counts = new int[Character.MAX_VALUE + 1];
         int length = value.length();
 
@@ -48,27 +62,5 @@ public class AnomalyDetector {
         }
 
         return entropy;
-    }
-
-    boolean hasRepeatedPattern(String value) {
-        String stripped = value.replaceAll("\\s+", "");
-        int length = stripped.length();
-
-        if (length < 4) {
-            return false;
-        }
-
-        for (int patternLength = 1; patternLength <= length / 2; patternLength++) {
-            if (length % patternLength != 0) {
-                continue;
-            }
-
-            String pattern = stripped.substring(0, patternLength);
-            if (pattern.repeat(length / patternLength).equals(stripped)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 }

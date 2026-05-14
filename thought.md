@@ -8,4 +8,10 @@ maven on a web base code base seem buggy, dropping it for now
 
 websocket on web code page is not clear, ask AI to focus back end first
 
-AI used sha-1 which isn't very sercure
+AI used sha-1 which isn't very safe. !!!
+It also use plain text for Key which is very bad
+
+tell AI to employ better design pattern
+
+
+There is a very big problem in using web codespace for web socket, the port connection 
