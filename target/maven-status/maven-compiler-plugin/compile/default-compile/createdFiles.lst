@@ -1,0 +1,5 @@
+com/ewalker/anomaly/detector/AnomalyDetector.class
+com/ewalker/anomaly/AnomalyDetectorApplication.class
+com/ewalker/anomaly/websocket/AnomalyWebSocketHandler.class
+com/ewalker/anomaly/detector/DetectionResult.class
+com/ewalker/anomaly/websocket/WebSocketConfig.class

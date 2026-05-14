@@ -1,0 +1,5 @@
+[
+  {"input":"abcabcabcabc", "anomaly": true},
+  {"input":"aaaaabaaaaa", "anomaly": true},
+  {"input":"server health check message 42", "anomaly": false}
+]

@@ -1,0 +1,5 @@
+/workspaces/ewalker_interview_Anomaly_Detector/src/main/java/com/ewalker/anomaly/AnomalyDetectorApplication.java
+/workspaces/ewalker_interview_Anomaly_Detector/src/main/java/com/ewalker/anomaly/detector/AnomalyDetector.java
+/workspaces/ewalker_interview_Anomaly_Detector/src/main/java/com/ewalker/anomaly/detector/DetectionResult.java
+/workspaces/ewalker_interview_Anomaly_Detector/src/main/java/com/ewalker/anomaly/websocket/AnomalyWebSocketHandler.java
+/workspaces/ewalker_interview_Anomaly_Detector/src/main/java/com/ewalker/anomaly/websocket/WebSocketConfig.java

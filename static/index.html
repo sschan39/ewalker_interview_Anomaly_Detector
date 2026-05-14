@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Anomaly Detector</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        input { width: 400px; padding: 8px; }
+        button { padding: 8px 16px; cursor: pointer; }
+        #output { margin-top: 20px; padding: 10px; border: 1px solid #ccc; min-height: 60px; background-color: #f9f9f9; }
+    </style>
+</head>
+<body>
+    <h1>Anomaly Detector</h1>
+    <input type="text" id="input" placeholder="Enter text to analyze" />
+    <button onclick="sendMessage()">Analyze</button>
+    <div id="output">Waiting for connection...</div>
+
+    <script>
+        const ws = new WebSocket('ws://localhost:8080');
+        const outputDiv = document.getElementById('output');
+        const inputField = document.getElementById('input');
+
+        ws.onopen = () => {
+            outputDiv.textContent = 'Connected to detector. Ready for input.';
+        };
+
+        ws.onmessage = (event) => {
+            outputDiv.textContent = event.data;
+        };
+
+        ws.onerror = () => {
+            outputDiv.textContent = 'Error: Could not connect to websocket server on localhost:8080';
+        };
+
+        ws.onclose = () => {
+            outputDiv.textContent = 'Disconnected from server.';
+        };
+
+        function sendMessage() {
+            const text = inputField.value.trim();
+            if (text) {
+                ws.send(text);
+                inputField.value = '';
+            }
+        }
+
+        inputField.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
